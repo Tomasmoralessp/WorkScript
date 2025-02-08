@@ -1,0 +1,10 @@
+transformers
+huggingface
+pandas
+pillow 
+datasets 
+torch
+pdf2image
+protobuf
+sentencepiece
+torchvision
