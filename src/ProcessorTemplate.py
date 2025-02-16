@@ -1,13 +1,9 @@
 from abc import ABC, abstractmethod
 import pdfplumber
 
-# TODO: Rewrite using hugging face pipelines 
-
 class ProcessorTemplate(ABC):
     def __init__(self):
-        self.pages = None  # Almacena las imágenes del PDF
-        self.answers = []  # Almacena las respuestas del modelo
-        self.stringified_text = None
+        self.stringified_text = ""
 
         # Cargar modelos de Hugging Face
         self.qa_pipeline = None
@@ -20,7 +16,18 @@ class ProcessorTemplate(ABC):
         self.stringified_text = ""
         with pdfplumber.open(pdf_path) as pdf:
             for page in pdf.pages:
-                self.stringified_text += page.extract_text()
+                page_text = page.extract_text()
+                if page_text:
+                    cleaned_page = self.clean_text(page_text)
+                    self.stringified_text += cleaned_page 
+    @abstractmethod
+    def clean_text(self, text):
+        """Limpia el texto eliminando encabezados y caracteres innecesarios"""
+        pass
+    
+    @abstractmethod
+    def format_df(self, dataframe):
+        pass
 
     
     def ask_question(self, question):
