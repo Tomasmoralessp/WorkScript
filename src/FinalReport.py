@@ -22,7 +22,11 @@ class FinalReport:
         self.df_staysover = None
 
     def guess_status_logic(self):
-        df_coincidences = pd.merge(self.df_arrivals, self.df_roomreport, on=['name'], how='inner', suffixes=('_arr','_room'))
+        # Asegurar que `room_number` sea string en ambos DataFrames
+        self.df_arrivals["room_number"] = self.df_arrivals["room_number"].astype(str)
+        self.df_roomreport["room_number"] = self.df_roomreport["room_number"].astype(str)
+
+        df_coincidences = pd.merge(self.df_arrivals, self.df_roomreport, on=['name'], how='inner', suffixes=('_arr', '_room'))
 
         # Si hay coincidencia y se queda en la misma habitación es "YA AQUÍ"
         self.df_stayovers = pd.merge(self.df_arrivals, self.df_roomreport, on=['name', 'room_number'], how='inner')
@@ -30,20 +34,32 @@ class FinalReport:
         # Si hay coincidencia pero se quedan en otra habitación es un cambio
         self.df_room_changes = df_coincidences[~df_coincidences['name'].isin(self.df_stayovers['name'])]
 
+        # Renombrar columnas para mantener consistencia
+        self.df_room_changes = self.df_room_changes.rename(columns={
+            'arr_date_arr': 'arr_date',
+            'dep_date_arr': 'dep_date'
+        })
+
+        # Asegurar que `arr_date` y `dep_date` están en df_room_changes
+        for col in ['arr_date', 'dep_date']:
+            if col not in self.df_room_changes.columns:
+                self.df_room_changes[col] = None
+
         # Agregar las columnas 'room_from' y 'room_to'
         self.df_room_changes = self.df_room_changes.rename(columns={'room_number_arr': 'room_from', 'room_number_room': 'room_to'})
         self.df_room_changes = self.df_room_changes[['name', 'room_from', 'room_to', 'arr_date', 'dep_date']]
 
         # Agregar la columna change y mostrar las columnas
-        self.df_room_changes['change'] = list(zip(self.df_room_changes['room_from'],self.df_room_changes['room_to']))
-        self.df_room_changes = self.df_room_changes[['name','change','arr_date','dep_date']]
-
+        self.df_room_changes['change'] = list(zip(self.df_room_changes['room_from'], self.df_room_changes['room_to']))
+        self.df_room_changes = self.df_room_changes[['name', 'change', 'arr_date', 'dep_date']]
 
         # Si no hay coincidencia, es una nueva entrada
         self.df_arrivals = self.df_arrivals[~self.df_arrivals['name'].isin(df_coincidences['name'])]
 
         # Salidas
         self.df_departures = self.df_departures[~self.df_departures['name'].isin(self.df_stayovers['name'])]
+
+
 
     def generate_excel(self):
         # Sustituir por listas tomadas del dataframe
